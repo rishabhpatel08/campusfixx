@@ -22,11 +22,7 @@ DROP TABLE IF EXISTS users           CASCADE;
 DROP TABLE IF EXISTS departments     CASCADE;
 DROP TABLE IF EXISTS locations       CASCADE;
 
--- ── AUTO UPDATED_AT TRIGGER ───────────────────────────────────
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
-$$ LANGUAGE plpgsql;
+-- updated_at handled by @PreUpdate in Java entities
 
 -- ════════════════════════════════════════════════════════════════
 -- LOCATIONS  (20 SGSITS campus spots)
@@ -174,7 +170,7 @@ CREATE TABLE IF NOT EXISTS users (
     -- Data source
     data_source      VARCHAR(30)  DEFAULT 'csv_import'  -- csv_import | admin_manual
 );
-CREATE TRIGGER users_upd BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 
 -- ════════════════════════════════════════════════════════════════
 -- OTP TOKENS  (Email OTP for passwordless login)
@@ -250,7 +246,7 @@ CREATE TABLE IF NOT EXISTS complaints (
     created_at          TIMESTAMPTZ  DEFAULT NOW(),
     updated_at          TIMESTAMPTZ  DEFAULT NOW()
 );
-CREATE TRIGGER complaints_upd BEFORE UPDATE ON complaints FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 
 CREATE INDEX IF NOT EXISTS idx_comp_status   ON complaints(status);
 CREATE INDEX IF NOT EXISTS idx_comp_cat      ON complaints(category);
