@@ -116,7 +116,7 @@ public class AuthService {
         userRepo.save(user);
 
         String token = jwt.generate(user);
-        long unread  = notifRepo.countByUserIdAndIsReadFalse(user.getId());
+        long unread  = notifRepo.countByUserIdAndReadFalse(user.getId());
 
         log.info("Login successful: {} ({})", user.getEmail(), user.getRole());
         return Map.of("token", token, "user", safeUser(user), "unread", unread);
