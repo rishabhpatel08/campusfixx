@@ -44,9 +44,7 @@ public class WhatsAppWebhookController {
         this.complaintSvc=complaintSvc; this.userRepo=userRepo; this.complaintRepo=complaintRepo;
     }
 
-    private final ComplaintService   complaintSvc;
-    private final UserRepository     userRepo;
-    private final ComplaintRepository complaintRepo;
+
 
     @Value("${app.whatsapp.webhook-verify-token:campusfix_webhook_secret_2026}")
     private String webhookVerifyToken;
