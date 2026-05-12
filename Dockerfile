@@ -2,7 +2,7 @@ FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 COPY backend/pom.xml .
 RUN mvn dependency:go-offline -q
-ARG CACHE_BUST=10
+ARG CACHE_BUST=11
 COPY backend/src ./src
 RUN mvn clean package -DskipTests -q
 
