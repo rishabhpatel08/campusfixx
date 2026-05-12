@@ -1,0 +1,55 @@
+services:
+  # ── Spring Boot Backend ───────────────────────────────────────
+  - type: web
+    name: campusfix-backend
+    runtime: java
+    region: singapore  # closest free region to India
+    plan: free
+    rootDir: backend
+    buildCommand: mvn clean package -DskipTests -q
+    startCommand: |
+      DB_JDBC=$(echo $DATABASE_URL | sed 's|postgres://|jdbc:postgresql://|')
+      java -Xms128m -Xmx400m -DSPRING_DATASOURCE_URL="$DB_JDBC" -jar target/campusfix-1.0.0.jar
+    healthCheckPath: /actuator/health
+
+    envVars:
+      # Database — auto-filled by Render when linked
+      - key: DATABASE_URL
+        fromDatabase:
+          name: campusfix-db
+          property: connectionString
+
+      # Secrets — set these manually in Render Dashboard → Environment
+      - key: JWT_SECRET
+        sync: false   # must be set manually
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false   # your GitHub Pages URL e.g. https://youruser.github.io/campusfix
+
+      # WhatsApp (optional — set if using WATI)
+      - key: WATI_API_URL
+        sync: false
+      - key: WATI_TOKEN
+        sync: false
+
+      # Staff WhatsApp numbers
+      - key: WA_ELECTRICAL
+        sync: false
+      - key: WA_PLUMBING
+        sync: false
+      - key: WA_TECHNICAL
+        sync: false
+      - key: WA_FURNITURE
+        sync: false
+      - key: WA_SANITATION
+        sync: false
+
+# ── PostgreSQL Database ───────────────────────────────────────
+databases:
+  - name: campusfix-db
+    databaseName: campusfix_db
+    plan: free
+    region: singapore

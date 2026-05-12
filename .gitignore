@@ -1,0 +1,15 @@
+# Backend build
+backend/target/
+backend/uploads/
+*.class
+*.jar
+
+# Secrets — NEVER commit these
+.env
+*.env.local
+application-prod.properties
+
+# OS
+.DS_Store
+Thumbs.db
+*.log

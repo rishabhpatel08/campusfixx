@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CampusFix — QR Code Admin | SGSITS Indore</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f8;color:#1a1a2e;min-height:100vh}
+.topbar{background:#1a1a2e;color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px}
+.topbar h1{font-size:1.05rem;font-weight:700}
+.topbar span{font-size:.76rem;color:#aaa;margin-left:auto}
+.container{max-width:1100px;margin:0 auto;padding:20px 14px}
+.card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:18px}
+h2{font-size:.95rem;font-weight:800;margin-bottom:13px;color:#1a1a2e}
+.sect-hdr{font-size:.78rem;font-weight:700;color:#4361ee;background:#eef0ff;border-radius:8px;padding:6px 12px;margin:14px 0 8px;letter-spacing:.04em;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:12px}
+.qr-card{background:#fff;border:1.5px solid #e0e5f0;border-radius:12px;padding:14px 10px;text-align:center;transition:.18s;position:relative}
+.qr-card:hover{box-shadow:0 4px 18px rgba(67,97,238,.13);border-color:#4361ee}
+.qr-room{font-size:.84rem;font-weight:800;margin-top:9px;color:#1a1a2e;line-height:1.3}
+.qr-sub{font-size:.69rem;color:#888;margin-top:3px}
+.tag{display:inline-block;padding:2px 7px;border-radius:6px;font-size:.67rem;font-weight:700;background:#e3f2fd;color:#1565c0;margin:1px}
+.tag-admin{background:#fce4ec;color:#c62828}
+.tag-special{background:#f3e5f5;color:#6a1b9a}
+.actions{display:flex;gap:5px;margin-top:9px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;transition:.15s}
+.btn-nv{background:#4361ee;color:#fff}.btn-nv:hover{background:#3451d1}
+.btn-gh{background:#f0f2f8;color:#444}.btn-gh:hover{background:#e2e5f0}
+.btn-gr{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}.btn-gr:hover{background:#2e7d32;color:#fff}
+.btn-rd{background:#fce4ec;color:#c62828;border:1px solid #ef9a9a}.btn-rd:hover{background:#c62828;color:#fff}
+.btn-sm{padding:4px 9px;font-size:.71rem}
+.info-box{background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:11px 14px;font-size:.79rem;color:#2e7d32;margin-bottom:16px;display:flex;gap:8px;align-items:flex-start}
+.fg{margin-bottom:10px}
+.fl{display:block;font-size:.77rem;font-weight:600;color:#555;margin-bottom:4px}
+.fc{width:100%;padding:8px 11px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.84rem;outline:none;transition:.2s}
+.fc:focus{border-color:#4361ee}
+select.fc{background:#fff}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.form-row{grid-template-columns:1fr}}
+.count-badge{background:#4361ee;color:#fff;border-radius:20px;padding:2px 10px;font-size:.72rem;font-weight:700;margin-left:8px}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.base-row{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+.base-row input{flex:1}
+
+/* Print */
+.print-area{display:none}
+@media print{
+  body>*:not(.print-area){display:none!important}
+  .print-area{display:block!important;padding:6mm}
+  .print-qr{display:inline-block;margin:5mm;text-align:center;vertical-align:top;width:62mm;border:0.5mm solid #ccc;border-radius:3mm;padding:4mm;page-break-inside:avoid}
+  .print-qr canvas,.print-qr img{width:52mm!important;height:52mm!important}
+  .proom{font-size:9.5pt;font-weight:700;margin-top:3mm;font-family:sans-serif;line-height:1.3}
+  .psub{font-size:7pt;color:#555;margin-top:1mm;font-family:sans-serif}
+  .pinst{font-size:6.5pt;color:#888;margin-top:1.5mm;font-family:sans-serif}
+  .pcode{font-size:6pt;color:#bbb;margin-top:1mm;font-family:monospace;word-break:break-all}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="font-size:1.4rem">📍</div>
+  <h1>CampusFix — QR Code Manager &nbsp;·&nbsp; SGSITS Indore</h1>
+  <span>Admin Only · Print &amp; Place QR Stickers at Each Location</span>
+</div>
+
+<div class="container">
+
+  <div class="info-box">
+    <span style="font-size:1.2rem">ℹ️</span>
+    <div>Each QR encodes the exact room into the complaint URL — <strong>location is pre-filled automatically</strong> when a student scans. Print on A6 laminated sticker, place near room entrance or notice board. <strong>All 66 SGSITS locations are pre-loaded below.</strong></div>
+  </div>
+
+  <!-- Base URL + actions -->
+  <div class="card">
+    <h2>⚙️ Settings &amp; Actions</h2>
+    <div class="fg">
+      <label class="fl">Base URL (your deployed domain / localhost)</label>
+      <div class="base-row">
+        <input class="fc" id="f-base" value="http://127.0.0.1:5500/frontend/pages/app.html" oninput="rerenderAll()">
+        <button class="btn btn-gh" onclick="resetBase()">↺ Reset</button>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-nv" onclick="printAll()">🖨️ Print All QR Codes</button>
+      <button class="btn btn-gr" onclick="printByBlock()">🏢 Print by Block</button>
+      <button class="btn btn-gh" onclick="copyAllURLs()">🔗 Copy All URLs</button>
+      <button class="btn btn-gh" onclick="toggleCustom()">➕ Add Custom Location</button>
+    </div>
+
+    <!-- Custom location adder (hidden by default) -->
+    <div id="custom-panel" style="display:none;border-top:1px solid #f0f0f0;padding-top:14px;margin-top:14px">
+      <h2 style="margin-bottom:10px">➕ Add Custom Location</h2>
+      <div class="form-row">
+        <div class="fg"><label class="fl">Room / Lab Name *</label><input class="fc" id="c-room" placeholder="e.g. Server Room"></div>
+        <div class="fg"><label class="fl">Building / Block</label><input class="fc" id="c-block" placeholder="e.g. LT Building"></div>
+        <div class="fg"><label class="fl">Floor</label>
+          <select class="fc" id="c-floor">
+            <option value="">Select</option><option>Ground</option><option>1st</option><option>2nd</option><option>3rd</option><option>4th</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Zone</label>
+          <select class="fc" id="c-zone">
+            <option value="">Select</option><option>Academic</option><option>Admin</option><option>Lab</option><option>Facility</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-nv" onclick="addCustom()">⚡ Add &amp; Generate QR</button>
+    </div>
+  </div>
+
+  <!-- QR Grid -->
+  <div class="card">
+    <h2>📋 All Campus Locations <span class="count-badge" id="total-count">66</span></h2>
+    <div id="qr-sections"></div>
+  </div>
+</div>
+
+<!-- Print area -->
+<div class="print-area" id="print-area"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ALL SGSITS INDORE LOCATIONS — real data
+// ═══════════════════════════════════════════════════════════════
+const CAMPUS_LOCATIONS = [
+  // ── LT Building — Ground Floor ──────────────────────────────
+  { id:'lt-001', name:'LT Building — Room 001', block:'LT Building', floor:'Ground', zone:'Academic' },
+  { id:'lt-002', name:'LT Building — Room 002', block:'LT Building', floor:'Ground', zone:'Academic' },
+  // ── LT Building — First Floor ────────────────────────────────
+  { id:'lt-101', name:'LT Building — Room 101', block:'LT Building', floor:'1st',    zone:'Academic' },
+  { id:'lt-102', name:'LT Building — Room 102', block:'LT Building', floor:'1st',    zone:'Academic' },
+  // ── LT Building — Second Floor ───────────────────────────────
+  { id:'lt-201', name:'LT Building — Room 201', block:'LT Building', floor:'2nd',    zone:'Academic' },
+  { id:'lt-202', name:'LT Building — Room 202', block:'LT Building', floor:'2nd',    zone:'Academic' },
+  // ── LT Building — Third Floor ────────────────────────────────
+  { id:'lt-301', name:'LT Building — Room 301', block:'LT Building', floor:'3rd',    zone:'Academic' },
+  { id:'lt-302', name:'LT Building — Room 302', block:'LT Building', floor:'3rd',    zone:'Academic' },
+  // ── LT Building — Fourth Floor ───────────────────────────────
+  { id:'lt-401', name:'LT Building — Room 401', block:'LT Building', floor:'4th',    zone:'Academic' },
+  { id:'lt-402', name:'LT Building — Room 402', block:'LT Building', floor:'4th',    zone:'Academic' },
+  // ── ATC Building — Ground Floor (101–108) ────────────────────
+  { id:'atc-101', name:'ATC Building — Room 101', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-102', name:'ATC Building — Room 102', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-103', name:'ATC Building — Room 103', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-104', name:'ATC Building — Room 104', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-105', name:'ATC Building — Room 105', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-106', name:'ATC Building — Room 106', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-107', name:'ATC Building — Room 107', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  { id:'atc-108', name:'ATC Building — Room 108', block:'ATC Building', floor:'Ground', zone:'Academic' },
+  // ── ATC Building — First Floor (201–208) ─────────────────────
+  { id:'atc-201', name:'ATC Building — Room 201', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-202', name:'ATC Building — Room 202', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-203', name:'ATC Building — Room 203', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-204', name:'ATC Building — Room 204', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-205', name:'ATC Building — Room 205', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-206', name:'ATC Building — Room 206', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-207', name:'ATC Building — Room 207', block:'ATC Building', floor:'1st', zone:'Academic' },
+  { id:'atc-208', name:'ATC Building — Room 208', block:'ATC Building', floor:'1st', zone:'Academic' },
+  // ── ATC Building — Second Floor (301–308) ────────────────────
+  { id:'atc-301', name:'ATC Building — Room 301', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-302', name:'ATC Building — Room 302', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-303', name:'ATC Building — Room 303', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-304', name:'ATC Building — Room 304', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-305', name:'ATC Building — Room 305', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-306', name:'ATC Building — Room 306', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-307', name:'ATC Building — Room 307', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  { id:'atc-308', name:'ATC Building — Room 308', block:'ATC Building', floor:'2nd', zone:'Academic' },
+  // ── Special Facilities ────────────────────────────────────────
+  { id:'central-lib',    name:'Central Library',            block:'Library',          floor:'Ground', zone:'Academic' },
+  { id:'adv-comp-lab',   name:'Advanced Computing Lab',     block:'ATC Building',     floor:'Ground', zone:'Lab'      },
+  // ── Old Building — Second Floor (201–220) ────────────────────
+  { id:'old-201', name:'Old Building — Room 201', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-202', name:'Old Building — Room 202', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-203', name:'Old Building — Room 203', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-204', name:'Old Building — Room 204', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-205', name:'Old Building — Room 205', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-206', name:'Old Building — Room 206', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-207', name:'Old Building — Room 207', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-208', name:'Old Building — Room 208', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-209', name:'Old Building — Room 209', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-210', name:'Old Building — Room 210', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-211', name:'Old Building — Room 211', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-212', name:'Old Building — Room 212', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-213', name:'Old Building — Room 213', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-214', name:'Old Building — Room 214', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-215', name:'Old Building — Room 215', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-216', name:'Old Building — Room 216', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-217', name:'Old Building — Room 217', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-218', name:'Old Building — Room 218', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-219', name:'Old Building — Room 219', block:'Old Building', floor:'2nd', zone:'Academic' },
+  { id:'old-220', name:'Old Building — Room 220', block:'Old Building', floor:'2nd', zone:'Academic' },
+  // ── Campus Facilities & Admin ─────────────────────────────────
+  { id:'gj-audi',   name:'Golden Jubilee Auditorium', block:'Auditorium',        floor:'Ground', zone:'Facility' },
+  { id:'silveria',  name:'Silveria (Cafeteria)',       block:'Silveria',          floor:'Ground', zone:'Facility' },
+  { id:'director',  name:"Director's Building",        block:'Director Building', floor:'Ground', zone:'Admin'    },
+  { id:'admin-blk', name:'Administrative Block',       block:'Admin Block',       floor:'Ground', zone:'Admin'    },
+  { id:'stu-sec',   name:'Student Section',            block:'Admin Block',       floor:'Ground', zone:'Admin'    },
+  { id:'exam-cell', name:'Examination Cell',           block:'Admin Block',       floor:'Ground', zone:'Admin'    },
+];
+
+// Custom locations stored in localStorage
+let customLocs = JSON.parse(localStorage.getItem('cf_custom_qr') || '[]');
+let allLocs = [...CAMPUS_LOCATIONS, ...customLocs];
+
+function getBase(){
+  return document.getElementById('f-base').value.trim() || 'http://127.0.0.1:5500/frontend/pages/app.html';
+}
+
+function buildURL(loc){
+  const base = getBase();
+  return `${base}?report=1&loc=${encodeURIComponent(loc.name)}&block=${encodeURIComponent(loc.block)}&floor=${encodeURIComponent(loc.floor)}&zone=${encodeURIComponent(loc.zone)}`;
+}
+
+function zoneColor(z){
+  return z==='Admin'?'tag-admin':z==='Lab'||z==='Facility'?'tag-special':'';
+}
+
+// Group locations by block
+function groupByBlock(locs){
+  const map = new Map();
+  locs.forEach(l => {
+    if(!map.has(l.block)) map.set(l.block, []);
+    map.get(l.block).push(l);
+  });
+  return map;
+}
+
+function renderAll(){
+  allLocs = [...CAMPUS_LOCATIONS, ...customLocs];
+  document.getElementById('total-count').textContent = allLocs.length;
+  const container = document.getElementById('qr-sections');
+  container.innerHTML = '';
+
+  const groups = groupByBlock(allLocs);
+  groups.forEach((locs, block) => {
+    const hdr = document.createElement('div');
+    hdr.className = 'sect-hdr';
+    hdr.textContent = `🏢 ${block} — ${locs.length} location${locs.length>1?'s':''}`;
+    container.appendChild(hdr);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    locs.forEach(loc => {
+      const card = document.createElement('div');
+      card.className = 'qr-card';
+      card.id = 'card-' + loc.id;
+
+      const qrWrap = document.createElement('div');
+      qrWrap.id = 'qr-' + loc.id;
+      card.appendChild(qrWrap);
+
+      const isCustom = customLocs.some(c => c.id === loc.id);
+      card.innerHTML += `
+        <div class="qr-room">${loc.name}</div>
+        <div class="qr-sub">
+          <span class="tag ${zoneColor(loc.zone)}">${loc.zone}</span>
+          <span class="tag">${loc.floor} Floor</span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-gr btn-sm" onclick="printOne('${loc.id}')">🖨️ Print</button>
+          <button class="btn btn-gh btn-sm" onclick="copyOne('${loc.id}')">🔗 URL</button>
+          ${isCustom ? `<button class="btn btn-rd btn-sm" onclick="delCustom('${loc.id}')">🗑️</button>` : ''}
+        </div>`;
+
+      grid.appendChild(card);
+
+      // Re-append qrWrap (innerHTML replaced it)
+      const qwReal = document.getElementById('qr-' + loc.id);
+      if(qwReal && !qwReal.hasChildNodes()){
+        new QRCode(qwReal, {
+          text: buildURL(loc),
+          width: 140, height: 140,
+          colorDark: '#1a1a2e', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+    });
+
+    container.appendChild(grid);
+  });
+
+  // Render QRs (they were lost during innerHTML replacement)
+  allLocs.forEach(loc => {
+    const el = document.getElementById('qr-' + loc.id);
+    if(el && !el.hasChildNodes()){
+      new QRCode(el, {
+        text: buildURL(loc),
+        width: 140, height: 140,
+        colorDark: '#1a1a2e', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  });
+}
+
+function rerenderAll(){
+  // Rebuild QR codes when base URL changes — clear and re-render
+  allLocs.forEach(loc => {
+    const el = document.getElementById('qr-' + loc.id);
+    if(el){ el.innerHTML = ''; new QRCode(el, { text: buildURL(loc), width:140, height:140, colorDark:'#1a1a2e', colorLight:'#fff', correctLevel: QRCode.CorrectLevel.M }); }
+  });
+}
+
+function copyOne(id){
+  const loc = allLocs.find(l => l.id === id);
+  if(!loc) return;
+  navigator.clipboard.writeText(buildURL(loc)).then(() => alert('URL copied!\n\n' + buildURL(loc)));
+}
+
+function copyAllURLs(){
+  const text = allLocs.map(l => `${l.name}: ${buildURL(l)}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => alert(`${allLocs.length} URLs copied to clipboard!`));
+}
+
+function buildPrintCards(locs){
+  const pa = document.getElementById('print-area');
+  pa.innerHTML = `<div style="font-family:sans-serif;font-size:10pt;font-weight:700;margin-bottom:5mm">CampusFix — QR Codes | SGSITS Indore | Scan to Report Issue</div>`;
+  locs.forEach(loc => {
+    const wrap = document.createElement('div');
+    wrap.className = 'print-qr';
+    const qDiv = document.createElement('div');
+    qDiv.id = 'pqr-' + loc.id;
+    wrap.innerHTML = `
+      <div class="proom">${loc.name}</div>
+      <div class="psub">${loc.zone} · ${loc.floor} Floor · ${loc.block}</div>
+      <div class="pinst">📱 Scan to report a campus issue instantly</div>
+      <div class="pcode">${buildURL(loc).substring(0,70)}</div>`;
+    wrap.insertBefore(qDiv, wrap.firstChild);
+    pa.appendChild(wrap);
+    new QRCode(qDiv, { text: buildURL(loc), width: 208, height: 208, colorDark:'#000', colorLight:'#fff', correctLevel: QRCode.CorrectLevel.H });
+  });
+}
+
+function printAll(){
+  buildPrintCards(allLocs);
+  setTimeout(() => window.print(), 800);
+}
+
+function printByBlock(){
+  const block = prompt('Enter block name to print (e.g. "LT Building", "ATC Building", "Old Building", "Admin Block"):');
+  if(!block) return;
+  const filtered = allLocs.filter(l => l.block.toLowerCase().includes(block.toLowerCase()));
+  if(!filtered.length){ alert('No locations found for: ' + block); return; }
+  buildPrintCards(filtered);
+  setTimeout(() => window.print(), 800);
+}
+
+function printOne(id){
+  const loc = allLocs.find(l => l.id === id);
+  if(!loc) return;
+  buildPrintCards([loc]);
+  setTimeout(() => window.print(), 600);
+}
+
+function toggleCustom(){
+  const p = document.getElementById('custom-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function addCustom(){
+  const name  = document.getElementById('c-room').value.trim();
+  const block = document.getElementById('c-block').value.trim();
+  const floor = document.getElementById('c-floor').value;
+  const zone  = document.getElementById('c-zone').value;
+  if(!name){ alert('Room name is required.'); return; }
+  const id = 'custom-' + Date.now();
+  const loc = { id, name, block: block||'Custom', floor: floor||'Ground', zone: zone||'Academic' };
+  customLocs.push(loc);
+  localStorage.setItem('cf_custom_qr', JSON.stringify(customLocs));
+  document.getElementById('c-room').value = '';
+  renderAll();
+}
+
+function delCustom(id){
+  if(!confirm('Remove this custom location?')) return;
+  customLocs = customLocs.filter(c => c.id !== id);
+  localStorage.setItem('cf_custom_qr', JSON.stringify(customLocs));
+  renderAll();
+}
+
+function resetBase(){
+  document.getElementById('f-base').value = 'http://127.0.0.1:5500/frontend/pages/app.html';
+  rerenderAll();
+}
+
+// Initial render
+renderAll();
+</script>
+</body>
+</html>
