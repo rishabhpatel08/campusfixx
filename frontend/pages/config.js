@@ -7,4 +7,4 @@
  * RENDER:     set to https://campusfix-backend.onrender.com/api
  *             (replace with your actual Render service URL)
  */
-window.CAMPUSFIX_API_URL = 'http://localhost:8080/api';
+window.CAMPUSFIX_API_URL = 'https://campusfixx.onrender.com/api';
