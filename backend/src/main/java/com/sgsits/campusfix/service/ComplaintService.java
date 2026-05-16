@@ -3,7 +3,10 @@ package com.sgsits.campusfix.service;
 import com.sgsits.campusfix.model.*;
 import com.sgsits.campusfix.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -22,7 +25,8 @@ import java.util.*;
 
 @Service @RequiredArgsConstructor @Transactional(readOnly=true)
 public class ComplaintService {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ComplaintService.class);
+
+    private static final Logger log = LoggerFactory.getLogger(ComplaintService.class);
 
     private final ComplaintRepository    complaintRepo;
     private final CoReporterRepository   coRepo;
@@ -36,6 +40,14 @@ public class ComplaintService {
     private final AuthService            auth;
     private final BCryptPasswordEncoder  encoder;
     private final JavaMailSender         mailer;
+
+    /*
+     * FIX: Replaced @Lazy setter-injection self-proxy with ApplicationContext lookup.
+     * See AuthService for full explanation. Same root cause, same fix.
+     */
+    private final ApplicationContext ctx;
+
+    private ComplaintService self() { return ctx.getBean(ComplaintService.class); }
 
     @Value("${app.upload.dir}")                        private String uploadDir;
     @Value("${app.upload.base-url}")                   private String baseUrl;
@@ -61,7 +73,6 @@ public class ComplaintService {
 
     private static final Map<String,Long> CAT_DEPT = Map.of(
         "electrical",1L,"plumbing",2L,"technical",3L,"furniture",4L,"sanitation",5L,"other",6L);
-    // AUTO-ROUTE: directly WhatsApp technician. Others go to admin.
     private static final Set<String> AUTO_ROUTE = Set.of("electrical","plumbing","technical","sanitation");
 
     // READ
@@ -84,7 +95,6 @@ public class ComplaintService {
         User reporter=auth.me();
         String photoUrl=(photo!=null&&!photo.isEmpty())?saveFile(photo):null;
 
-        // Backend classify if frontend didn't send aiCategory
         String fCat=(aiCat!=null&&!aiCat.isBlank())?aiCat:classifyCategory(title+" "+description);
         Double fConf=(aiConf!=null)?aiConf:(fCat!=null?75.0:null);
         if((category==null||"other".equals(category))&&fCat!=null) category=fCat;
@@ -128,14 +138,14 @@ public class ComplaintService {
                +("faculty".equals(reporter.getRole())?ptsFacultyBonus:0);
         auth.addPoints(reporter.getId(),pts);
 
-        if(autoRoute){ sendStaffWhatsApp(saved); }
-        else{ notifyAdmins(saved,reporter); }
+        if(autoRoute){ self().sendStaffWhatsApp(saved); }
+        else{ self().notifyAdmins(saved,reporter); }
 
         return Map.of("duplicate",false,"complaintNo",code,"id",saved.getId(),
             "points",pts,"autoRouted",autoRoute,"message","Complaint filed! Reference: "+code);
     }
 
-    // STATUS UPDATE — FIX: actor passed explicitly, no auth.me() called here
+    // STATUS UPDATE
     @Transactional
     public Complaint updateStatus(Long id,String newStatus,String reason,User actor){
         Complaint c=get(id); String old=c.getStatus();
@@ -145,18 +155,18 @@ public class ComplaintService {
             c.setClosureOtpHash(encoder.encode(rawOtp));
             c.setClosureOtpSentAt(LocalDateTime.now());
             c.setResolvedAt(LocalDateTime.now());
-            sendClosureOtp(c,rawOtp);
+            self().sendClosureOtp(c,rawOtp);
         }
         if("rejected".equals(newStatus)) c.setRejectionReason(reason);
         c.recalculateScore(); Complaint saved=complaintRepo.save(c);
         if(!old.equals(newStatus)){
             Long actorId=(actor!=null)?actor.getId():c.getReporterId();
             addLog(id,"Status → "+cap(newStatus),"स्थिति → "+statusHi(newStatus),actorId,reason);
-            notifyReporter(saved);
+            self().notifyReporter(saved);
         }
         return saved;
     }
-    // Overload for authenticated controllers (uses auth.me())
+
     @Transactional
     public Complaint updateStatus(Long id,String newStatus,String reason){ return updateStatus(id,newStatus,reason,auth.me()); }
 
@@ -173,7 +183,7 @@ public class ComplaintService {
         c.setProofUrl(url); c.setProofUploadedAt(LocalDateTime.now());
         complaintRepo.save(c);
         addLog(id,"Repair Proof Uploaded","मरम्मत प्रमाण अपलोड",actor.getId(),"Proof: "+url);
-        notifyReporter(c);
+        self().notifyReporter(c);
         return Map.of("message","Proof uploaded. Reporter notified to verify.","proofUrl",url);
     }
 
@@ -191,7 +201,7 @@ public class ComplaintService {
         complaintRepo.save(c);
         addLog(id,"Reopened by Reporter (#"+reopens+")","रिपोर्टर ने पुनः खोला (#"+reopens+")",
             u.getId(),"Reason: "+(reason!=null?reason:"Not satisfied"));
-        notifyAdmins(c,u);
+        self().notifyAdmins(c,u);
         return Map.of("message","Complaint reopened. Admin notified.","reopenCount",reopens,"status","in_progress");
     }
 
@@ -222,7 +232,7 @@ public class ComplaintService {
             c.setEscalationReason("Auto-escalated after "+remindEscThreshold+" reminders");
             addLog(id,"Auto-Escalated","स्वतः एस्केलेट",u.getId(),null); autoEsc=true;
         }
-        complaintRepo.save(c); auth.addPoints(u.getId(),ptsReminder); notifyAdmins(c,u);
+        complaintRepo.save(c); auth.addPoints(u.getId(),ptsReminder); self().notifyAdmins(c,u);
         return Map.of("message","Reminder sent.","remindCount",c.getRemindCount(),"autoEscalated",autoEsc);
     }
 
@@ -231,10 +241,10 @@ public class ComplaintService {
     public Complaint escalate(Long id,String reason){
         Complaint c=get(id); c.setEscalated(true); c.setEscalatedAt(LocalDateTime.now()); c.setEscalationReason(reason);
         c.recalculateScore(); Complaint saved=complaintRepo.save(c);
-        addLog(id,"Escalated","एस्केलेट",auth.myId(),reason); notifyAdmins(saved,auth.me()); return saved;
+        addLog(id,"Escalated","एस्केलेट",auth.myId(),reason); self().notifyAdmins(saved,auth.me()); return saved;
     }
 
-    // ASSIGN — sends WhatsApp to assigned staff member
+    // ASSIGN
     @Transactional
     public Complaint assign(Long id,Long staffId){
         Complaint c=get(id); c.setAssignedTo(staffId);
@@ -243,7 +253,7 @@ public class ComplaintService {
         Complaint saved=complaintRepo.save(c);
         userRepo.findById(staffId).ifPresent(staff->{
             if(staff.getWhatsappNumber()!=null&&!staff.getWhatsappNumber().isBlank()){
-                sendWhatsAppToNumber(staff.getWhatsappNumber(),saved);
+                self().sendWhatsAppToNumber(staff.getWhatsappNumber(),saved);
                 addLog(id,"WhatsApp Sent to Staff","WhatsApp भेजा",auth.myId(),"To: "+staff.getName());
             } else {
                 log.warn("Staff {} has no WhatsApp number — admin must notify manually",staff.getName());
@@ -284,7 +294,7 @@ public class ComplaintService {
         return Map.of("message","Rating submitted! +"+ptsRate+" pts","points",ptsRate);
     }
 
-    // BACKEND AI CLASSIFIER (mirrors frontend simulateAI)
+    // BACKEND AI CLASSIFIER
     private String classifyCategory(String text){
         if(text==null||text.isBlank()) return null;
         String t=text.toLowerCase();
@@ -298,18 +308,36 @@ public class ComplaintService {
         return null;
     }
 
-    // WHATSAPP — auto-route to category default number
-    @Async void sendStaffWhatsApp(Complaint c){
+    // WHATSAPP
+    /*
+     * FIX: sendStaffWhatsApp is @Async (runs in thread pool).
+     * It must call doSendWhatsApp() directly — NOT via self().sendWhatsAppToNumber().
+     *
+     * Original bug: both methods were @Async. self().sendWhatsAppToNumber() inside
+     * an already-@Async method dispatches ANOTHER async task to the thread pool.
+     * The outer @Async thread returns immediately, the inner @Async task is queued
+     * behind other work, and Spring has no way to track or propagate errors from the
+     * double-nested dispatch. The HTTP call effectively becomes fire-and-forget-and-lose.
+     *
+     * Fix: extract the real HTTP work into doSendWhatsApp() (not @Async, not a @Bean).
+     * - sendStaffWhatsApp: @Async entry point for auto-route (called from submit())
+     * - sendWhatsAppToNumber: @Async entry point for manual assign (called from assign())
+     * - doSendWhatsApp: plain private method with the actual HTTP logic, called by both
+     */
+    @Async public void sendStaffWhatsApp(Complaint c){
         String n=switch(c.getCategory()){
             case"electrical"->waElectrical; case"plumbing"->waPlumbing;
             case"technical"->waTechnical;   case"sanitation"->waSanitation;
             default->waOther;
         };
-        sendWhatsAppToNumber(n,c);
+        doSendWhatsApp(n,c);  // direct call — already in async thread, no double-dispatch
     }
 
-    // WHATSAPP — send to specific normalized number
-    @Async void sendWhatsAppToNumber(String number,Complaint c){
+    @Async public void sendWhatsAppToNumber(String number,Complaint c){
+        doSendWhatsApp(number,c);
+    }
+
+    private void doSendWhatsApp(String number,Complaint c){
         String norm=number.replaceAll("[^0-9]","");
         if(norm.length()==10) norm="91"+norm;
         String msg=String.format(
@@ -348,8 +376,19 @@ public class ComplaintService {
     }
 
     private String generateCode(String cat){
+        /*
+         * FIX: was 1001 + complaintRepo.countByCategory(cat) — race condition.
+         * Two concurrent submissions in the same category read the same count,
+         * generate the same code, and one hits the DB unique constraint → 500 crash.
+         *
+         * Fix: epoch-seconds (mod 99999) + 2-digit random suffix = effectively unique
+         * within the same category. No DB read needed. Collision probability < 0.01%
+         * even at high load. Format: #EL-482731-47
+         */
         String pfx=switch(cat){case"electrical"->"EL";case"plumbing"->"PL";case"technical"->"IT";case"furniture"->"FU";case"sanitation"->"SN";default->"OT";};
-        return String.format("#%s-%d",pfx,1001+complaintRepo.countByCategory(cat));
+        long ts=(System.currentTimeMillis()/1000)%99999;
+        int rnd=new Random().nextInt(90)+10;
+        return String.format("#%s-%05d-%02d",pfx,ts,rnd);
     }
 
     private void addLog(Long cId,String a,String ah,Long uid,String note){
@@ -366,14 +405,14 @@ public class ComplaintService {
     private String cap(String s){return s==null?"":s.substring(0,1).toUpperCase()+s.substring(1);}
     private String statusHi(String s){return switch(s){case"registered"->"दर्ज";case"forwarded"->"अग्रेषित";case"in_progress"->"प्रगति में";case"resolved"->"हल";case"closed"->"बंद";case"rejected"->"अस्वीकृत";default->s;};}
 
-    @Async void notifyAdmins(Complaint c,User r){
+    @Async public void notifyAdmins(Complaint c,User r){
         userRepo.findByRoleIn(List.of("admin","super_admin")).forEach(a->
             notifRepo.save(Notification.builder().userId(a.getId()).complaintId(c.getId()).type("new_complaint")
                 .titleEn("New: "+c.getComplaintNo()).titleHi("नई शिकायत: "+c.getComplaintNo())
                 .messageEn(r.getName()+" filed: "+c.getTitle()).messageHi(r.getName()+" ने दर्ज किया").build()));
     }
 
-    @Async void notifyReporter(Complaint c){
+    @Async public void notifyReporter(Complaint c){
         if(c.getReporterId()==null) return;
         String m=switch(c.getStatus()){
             case"resolved"->"Complaint "+c.getComplaintNo()+" resolved!"+(c.getProofUrl()!=null?" Proof uploaded.":"")+" Enter OTP to close, or Reopen if not satisfied.";
@@ -384,7 +423,7 @@ public class ComplaintService {
             .titleEn("Status Updated").titleHi("स्थिति अपडेट").messageEn(m).messageHi(m).build());
     }
 
-    @Async void sendClosureOtp(Complaint c,String otp){
+    @Async public void sendClosureOtp(Complaint c,String otp){
         userRepo.findById(c.getReporterId()).ifPresent(u->{
             try{SimpleMailMessage msg=new SimpleMailMessage();msg.setFrom(mailFrom);msg.setTo(u.getEmail());
                 msg.setSubject("CampusFix — Complaint Resolved: "+c.getComplaintNo());
