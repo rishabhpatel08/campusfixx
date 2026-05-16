@@ -339,6 +339,7 @@ select.fc{cursor:pointer}
     <a class="nl" onclick="toggleNotif()"><span class="ni">🔔</span><span class="nt" id="nl-notif">Notifications</span><span class="nb" id="sb-nb"></span></a>
     <div class="sb-s" id="sbs-adm" style="display:none">Admin</div>
     <a class="nl" data-pg="pg-admin" id="nl-adm-lnk" onclick="go('pg-admin')" style="display:none"><span class="ni">🛡️</span><span class="nt" id="nl-admin">Admin Panel</span></a>
+    <a class="nl" id="nl-qr-lnk" onclick="window.open('qr-admin.html','_blank')" style="display:none"><span class="ni">📲</span><span class="nt">QR Room Codes</span></a>
     <a class="nl" onclick="doLogout()"><span class="ni">⇥</span><span class="nt" id="nl-out">Logout</span></a>
     <div class="sb-user">
       <div class="av" id="sb-av">?</div>
@@ -1293,7 +1294,7 @@ function doLogout(){localStorage.removeItem('cf_token');localStorage.removeItem(
 /* ── ROUTING ── */
 function buildSidebar(){
   const isAdm=['admin','super_admin'].includes(CRole);
-  if(isAdm){document.getElementById('sbs-adm').style.display='';document.getElementById('nl-adm-lnk').style.display='';}
+  if(isAdm){document.getElementById('sbs-adm').style.display='';document.getElementById('nl-adm-lnk').style.display='';document.getElementById('nl-qr-lnk').style.display='';}
 }
 function go(id){
   document.querySelectorAll('.content .pg').forEach(p=>p.classList.remove('active'));
@@ -1303,7 +1304,7 @@ function go(id){
   if(id==='pg-dash'){renderDash();renderMiniLB();renderPtsGuide();}
   if(id==='pg-mine')renderMine();
   if(id==='pg-lb')renderLB(LB);
-  if(id==='pg-admin'){renderAdminList();renderAdminDept();renderHotspots();}
+  if(id==='pg-admin'){loadComplaints().then(()=>{renderAdminList();renderAdminDept();renderHotspots();});}
   if(id==='pg-users'){loadUsers();}
 }
 function goBack(){go(prevPg||'pg-dash');}
@@ -2023,7 +2024,7 @@ async function submitReport(){
       setTimeout(()=>{ autoRouteWhatsApp(comp); },600);
     }
     addAdminNotif('new_complaint','📋 New Complaint Filed',`${comp.complaintNo} — ${comp.title} (${(rCat||'other').toUpperCase()})`,comp);
-    closeReport();await loadComplaints();
+    closeReport();await loadComplaints();renderDash();renderMine();
   }catch(e){
     // Demo fallback
     const newC={id:Date.now(),complaintNo:'#'+(rCat||'ot').slice(0,2).toUpperCase()+'-'+Math.floor(Math.random()*900+1100),title:document.getElementById('r-title').value,description:document.getElementById('r-desc').value,category:rCat||'other',priority:rPri,status:'registered',locationText:document.getElementById('r-loc').value,gpsLat:rGPS?.lat||22.7196822,gpsLng:rGPS?.lng||75.8577173,importanceScore:rPri==='critical'?40:rPri==='high'?28:16,reporterCount:1,isEscalated:false,remindCount:0,createdAt:new Date().toISOString(),slaDeadline:new Date(Date.now()+(rPri==='critical'?28800000:rPri==='high'?43200000:rPri==='medium'?172800000:345600000)).toISOString(),logs:[{dot:'',action:'Complaint Registered',actionHi:'शिकायत दर्ज',note:'Filed via web portal',createdAt:new Date().toISOString()}],comments:[],reporters:[CU?.name||'Reporter'],deptName:'—'};
