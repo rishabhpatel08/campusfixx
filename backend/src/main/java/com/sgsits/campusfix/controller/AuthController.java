@@ -1,5 +1,6 @@
 package com.sgsits.campusfix.controller;
 
+import com.sgsits.campusfix.model.User;
 import com.sgsits.campusfix.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,32 +13,26 @@ import java.util.Map;
 public class AuthController {
     private final AuthService auth;
 
+    /** Step 0: Lookup enrollment ID → returns name + masked email (no auth needed) */
     @PostMapping("/lookup")
     public ResponseEntity<Map<String, Object>> lookup(@RequestBody Map<String, String> b) {
         return ResponseEntity.ok(auth.lookupUser(b.get("enrollmentId")));
     }
 
+    /** Step 1: Enrollment ID → send OTP to registered email */
     @PostMapping("/request-otp")
     public ResponseEntity<Map<String, Object>> requestOtp(@RequestBody Map<String, String> b) {
         return ResponseEntity.ok(auth.requestOtp(b.get("enrollmentId")));
     }
 
+    /** Step 2: Submit OTP → get JWT token + full user object */
     @PostMapping("/verify-otp")
     public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, String> b) {
         return ResponseEntity.ok(auth.verifyOtp(b.get("enrollmentId"), b.get("otp")));
     }
 
-    /*
-     * FIX: was ResponseEntity<User> returning the raw entity.
-     * Raw entity exposes internal fields: dataSource, streakDays, active flag,
-     * createdAt, updatedAt, lastLogin — none of which the frontend needs,
-     * and some of which are operationally sensitive.
-     * safeUser() returns only the 10 fields the frontend actually uses.
-     */
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> me() {
-        return ResponseEntity.ok(auth.safeUser(auth.me()));
-    }
+    public ResponseEntity<User> me() { return ResponseEntity.ok(auth.me()); }
 
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout() {
