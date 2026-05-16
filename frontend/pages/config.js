@@ -15,5 +15,5 @@
  *  2. Replace the value below (keep /api at the end)
  *  3. Commit & push — GitHub Pages will serve the update
  */
-window.CAMPUSFIX_API_URL = 'https://campusfix-backend.onrender.com/api';
+window.CAMPUSFIX_API_URL = 'https://campusfixx.onrender.com/api';
 // ↑ REPLACE with your actual Render URL. DO NOT leave localhost for production.
